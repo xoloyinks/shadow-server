@@ -10,7 +10,12 @@ const ChatSchema = new mongoose.Schema({
     shadowId: String,
     message: String,
     messageType: String,
-    timestamp: String
+    timestamp: String,
+    // optional reply object
+    reply: {
+        sender: String,
+        message: String
+    }
 });
 
 const ImageCaptionSchema = new mongoose.Schema({

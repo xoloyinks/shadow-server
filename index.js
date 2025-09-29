@@ -84,15 +84,19 @@ io.on('connection', (socket) => {
         io.to(socket.id).emit('prevImageCaptions', prevImageCaptions);
     });
 
-    socket.on('text', async ({ message, rooms, user, time, messageType }) => {
+    socket.on('text', async ({ message, rooms, user, time, messageType, reply }) => {
         await Chat.create({
             sender: user,
             shadowId: rooms,
             message,
             messageType,
-            timestamp: time
+            timestamp: time,
+            reply: reply ? {
+                sender: reply.sender,
+                message: reply.message
+            } : null
         });
-        io.to(rooms).emit('chat', { message, user, time, messageType });
+        io.to(rooms).emit('chat', { message, user, time, messageType});
     });
 
     socket.on('image', async ({ message, rooms, user, time, messageType }) => {
