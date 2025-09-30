@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 const ShadowSchema = new mongoose.Schema({
     shadow: String,
-    pass: String
+    pass: String,
+    createdAt: { type: Date, default: Date.now, expires: 86400}
 });
 
 const ChatSchema = new mongoose.Schema({

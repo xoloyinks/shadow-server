@@ -7,6 +7,18 @@ const bodyParser = require('body-parser');
 const multer = require('multer');
 const path = require('path');
 const connectDb = require('./mongo');
+const cron = require('node-cron');
+
+
+// Schedule a cron job to run every 5 minutes to clean up expired shadows and their chats
+cron.schedule('*/5 * * * *', async () => {
+    const now = new Date();
+    const expiredShadows = await Shadow.find({ createdAt: { $lte: new Date(now.getTime() - 86400000) } });
+    for(const room of expiredShadows) {
+        await Chat.deleteMany({ shadowId: room.shadow });
+        await Shadow.deleteOne({ shadow: room.shadow });
+    }
+});
 
 // Import mongoose models
 const { Shadow, Chat, ImageCaption } = require('./models');
