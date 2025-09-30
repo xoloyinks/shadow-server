@@ -96,7 +96,10 @@ io.on('connection', (socket) => {
                 message: reply.message
             } : null
         });
-        io.to(rooms).emit('chat', { message, user, time, messageType});
+        io.to(rooms).emit('chat', { message, sender: user, timestamp: time, messageType, reply: reply ? {
+            sender: reply.sender,
+            message: reply.message
+        } : null });
     });
 
     socket.on('image', async ({ message, rooms, user, time, messageType }) => {
