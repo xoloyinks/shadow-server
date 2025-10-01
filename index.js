@@ -21,7 +21,7 @@ cron.schedule('*/5 * * * *', async () => {
 });
 
 // Import mongoose models
-const { Shadow, Chat, ImageCaption } = require('./models');
+const { Shadow, Chat, ImageCaption, Reaction } = require('./models');
 
 dotenv.config();
 
@@ -91,9 +91,14 @@ io.on('connection', (socket) => {
 
         const prevChats = await Chat.find({ shadowId: data });
         const prevImageCaptions = await ImageCaption.find({ shadowId: data });
+        const prevReactions = await Reaction.find({ shadowId: data });
 
         io.to(socket.id).emit('prevMessages', prevChats);
         io.to(socket.id).emit('prevImageCaptions', prevImageCaptions);
+        if(prevReactions){
+            io.to(socket.id).emit('prevReactions', prevReactions);
+        }
+        
     });
 
     socket.on('text', async ({ message, rooms, user, time, messageType, reply }) => {
@@ -114,27 +119,20 @@ io.on('connection', (socket) => {
         } : null });
     });
 
-    socket.on('image', async ({ message, rooms, user, time, messageType }) => {
-        await Chat.create({
-            sender: user,
-            shadowId: rooms,
-            message,
-            messageType,
-            timestamp: time
-        });
-        io.to(rooms).emit('chat', { message, user, time, messageType });
-    });
+    
 
-    socket.on('image_caption', async ({ image, caption, rooms }) => {
-        await ImageCaption.create({
-            image,
-            caption,
-            shadowId: rooms
-        });
-        io.to(rooms).emit('imageData', { image, caption });
+    socket.on('reaction', async ({ reaction, chatId, rooms }) => {
+        const chatReactionExists = await Reaction.findOne({chatId});
+        if(chatReactionExists){
+            chatReactionExists.reactions.push(reaction);
+            await chatReactionExists.save();
+        } else {
+            await Reaction.create({ chatId, reactions: [reaction], shadowId: rooms});
+        }
+        const prevReactions = await Reaction.find({ shadowId: rooms });
+        io.to(rooms).emit('prevReactions', prevReactions);
     });
 });
-
 app.post('/uploadedImage', upload.single('file'), (req, res) => {
     res.send(req.file?.filename);
 });
@@ -156,4 +154,4 @@ const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {
     connectDb();
     console.log(`Connected to port ${PORT}`);
-});
+})

@@ -25,8 +25,15 @@ const ImageCaptionSchema = new mongoose.Schema({
     shadowId: String
 });
 
+const ReactionSchema = new mongoose.Schema({
+    chatId: mongoose.Schema.Types.ObjectId,
+    reactions: [String],
+    shadowId: String
+});
+
 const Shadow = mongoose.model('Shadow', ShadowSchema);
 const Chat = mongoose.model('Chat', ChatSchema);
 const ImageCaption = mongoose.model('ImageCaption', ImageCaptionSchema);
+const Reaction = mongoose.model('Reaction', ReactionSchema);
 
-module.exports = { Shadow, Chat, ImageCaption };
+module.exports = { Shadow, Chat, ImageCaption, Reaction };
