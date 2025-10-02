@@ -150,6 +150,10 @@ io.on('connection', (socket) => {
         const prevChats = await Chat.find({ shadowId: rooms });
         io.to(socket.id).emit('prevMessages', prevChats);
     })
+
+    socket.on('typing', ({rooms}) => {
+        socket.to(rooms).emit('typing', "Something is lurking...");
+    })
 });
 app.post('/uploadedImage', upload.single('file'), (req, res) => {
     res.send(req.file?.filename);
