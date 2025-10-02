@@ -27,8 +27,11 @@ const ImageCaptionSchema = new mongoose.Schema({
 
 const ReactionSchema = new mongoose.Schema({
     chatId: mongoose.Schema.Types.ObjectId,
-    reactions: [String],
-    shadowId: String
+    reactions: [{
+        reaction: String,
+        reactor: String
+    }],
+    shadowId: String,
 });
 
 const Shadow = mongoose.model('Shadow', ShadowSchema);

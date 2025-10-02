@@ -8,7 +8,7 @@ const multer = require('multer');
 const path = require('path');
 const connectDb = require('./mongo');
 const cron = require('node-cron');
-
+const { Shadow, Chat, ImageCaption, Reaction } = require('./models');
 
 // Schedule a cron job to run every 5 minutes to clean up expired shadows and their chats
 cron.schedule('*/5 * * * *', async () => {
@@ -20,8 +20,7 @@ cron.schedule('*/5 * * * *', async () => {
     }
 });
 
-// Import mongoose models
-const { Shadow, Chat, ImageCaption, Reaction } = require('./models');
+
 
 dotenv.config();
 
@@ -102,7 +101,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('text', async ({ message, rooms, user, time, messageType, reply }) => {
-        await Chat.create({
+        const createChat = await Chat.create({
             sender: user,
             shadowId: rooms,
             message,
@@ -113,7 +112,7 @@ io.on('connection', (socket) => {
                 message: reply.message
             } : null
         });
-        io.to(rooms).emit('chat', { message, sender: user, timestamp: time, messageType, reply: reply ? {
+        io.to(rooms).emit('chat', { message, sender: user, timestamp: time, messageType, shadowId: rooms, _id: createChat.id,  reply: reply ? {
             sender: reply.sender,
             message: reply.message
         } : null });
@@ -122,16 +121,27 @@ io.on('connection', (socket) => {
     
 
     socket.on('reaction', async ({ reaction, chatId, rooms }) => {
-        const chatReactionExists = await Reaction.findOne({chatId});
-        if(chatReactionExists){
-            chatReactionExists.reactions.push(reaction);
-            await chatReactionExists.save();
+        console.log({ reaction, chatId, rooms });
+    let chatReaction = await Reaction.findOne({ chatId });
+
+    if (chatReaction) {
+        // Check if this reactor has already reacted
+        const existing = chatReaction.reactions.find(r => r.reactor === reaction.reactor);
+        if (existing) {
+            // Update the reaction for this reactor
+            existing.reaction = reaction.reaction;
         } else {
-            await Reaction.create({ chatId, reactions: [reaction], shadowId: rooms});
+            // Add new reaction for this reactor
+            chatReaction.reactions.push({ reaction: reaction.reaction, reactor: reaction.reactor });
         }
-        const prevReactions = await Reaction.find({ shadowId: rooms });
-        io.to(rooms).emit('prevReactions', prevReactions);
-    });
+        await chatReaction.save();
+    } else {
+        // Create new Reaction document
+        await Reaction.create({ chatId, reactions: [{ reaction: reaction.reaction, reactor: reaction.reactor }], shadowId: rooms });
+    }
+    const prevReactions = await Reaction.find({ shadowId: rooms });
+    io.to(rooms).emit('prevReactions', prevReactions);
+});
 });
 app.post('/uploadedImage', upload.single('file'), (req, res) => {
     res.send(req.file?.filename);
