@@ -20,12 +20,6 @@ cron.schedule('*/5 * * * *', async () => {
     }
 });
 
-cron.schedule('*/2 * * * *', async () => {
-    console.log("cron alive")
-});
-
-
-
 dotenv.config();
 
 const storage = multer.diskStorage({
@@ -54,6 +48,8 @@ const io = new Server(server, {
 });
 
 app.get('/', (req, res) => res.send("Ondo State!"));
+
+app.get('/activateServer', (req, res) => res.send("Server is active"));
 
 // Validate Shadow Identity
 app.get('/validateId', async (req, res) => {
