@@ -20,6 +20,10 @@ cron.schedule('*/5 * * * *', async () => {
     }
 });
 
+cron.schedule('*/2 * * * *', async () => {
+    console.log("cron alive")
+});
+
 
 
 dotenv.config();
