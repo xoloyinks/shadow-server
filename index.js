@@ -122,26 +122,34 @@ io.on('connection', (socket) => {
 
     socket.on('reaction', async ({ reaction, chatId, rooms }) => {
         console.log({ reaction, chatId, rooms });
-    let chatReaction = await Reaction.findOne({ chatId });
+        let chatReaction = await Reaction.findOne({ chatId });
 
-    if (chatReaction) {
-        // Check if this reactor has already reacted
-        const existing = chatReaction.reactions.find(r => r.reactor === reaction.reactor);
-        if (existing) {
-            // Update the reaction for this reactor
-            existing.reaction = reaction.reaction;
+        if (chatReaction) {
+            // Check if this reactor has already reacted
+            const existing = chatReaction.reactions.find(r => r.reactor === reaction.reactor);
+            if (existing) {
+                // Update the reaction for this reactor
+                existing.reaction = reaction.reaction;
+            } else {
+                // Add new reaction for this reactor
+                chatReaction.reactions.push({ reaction: reaction.reaction, reactor: reaction.reactor });
+            }
+            await chatReaction.save();
         } else {
-            // Add new reaction for this reactor
-            chatReaction.reactions.push({ reaction: reaction.reaction, reactor: reaction.reactor });
+            // Create new Reaction document
+            await Reaction.create({ chatId, reactions: [{ reaction: reaction.reaction, reactor: reaction.reactor }], shadowId: rooms });
         }
-        await chatReaction.save();
-    } else {
-        // Create new Reaction document
-        await Reaction.create({ chatId, reactions: [{ reaction: reaction.reaction, reactor: reaction.reactor }], shadowId: rooms });
-    }
-    const prevReactions = await Reaction.find({ shadowId: rooms });
-    io.to(rooms).emit('prevReactions', prevReactions);
-});
+        const prevReactions = await Reaction.find({ shadowId: rooms });
+        io.to(rooms).emit('prevReactions', prevReactions);
+    });
+
+    socket.on('deleteChat', async({ chatId, rooms }) => {
+        if(!chatId) return;
+        await Chat.deleteOne({ _id: chatId });
+        await Reaction.deleteMany({ chatId });
+        const prevChats = await Chat.find({ shadowId: rooms });
+        io.to(socket.id).emit('prevMessages', prevChats);
+    })
 });
 app.post('/uploadedImage', upload.single('file'), (req, res) => {
     res.send(req.file?.filename);
