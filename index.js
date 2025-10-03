@@ -85,7 +85,7 @@ io.on('connection', (socket) => {
     socket.on('roomId', async (data) => {
         socket.join(data);
         const clientsInRoom = io.sockets.adapter.rooms.get(data);
-        socket.to(data).emit('joined', 'Somebody joined');
+        socket.to(data).emit('joined', 'Another lurker has entered the dark...');
         socket.to(data).emit('population', `${clientsInRoom?.size ?? 1} active`);
 
         const prevChats = await Chat.find({ shadowId: data });
@@ -148,7 +148,7 @@ io.on('connection', (socket) => {
         await Chat.deleteOne({ _id: chatId });
         await Reaction.deleteMany({ chatId });
         const prevChats = await Chat.find({ shadowId: rooms });
-        io.to(socket.id).emit('prevMessages', prevChats);
+        io.to(rooms).emit('prevMessages', prevChats);
     })
 
     socket.on('typing', ({rooms}) => {
