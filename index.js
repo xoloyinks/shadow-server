@@ -47,7 +47,7 @@ const io = new Server(server, {
     }
 });
 
-app.get('/', (req, res) => res.send("Ondo State!"));
+app.get('/', (req, res) => res.send("Welcome to the server!"));
 
 app.get('/activateServer', (req, res) => res.send("Server is active"));
 
@@ -125,18 +125,18 @@ io.on('connection', (socket) => {
         let chatReaction = await Reaction.findOne({ chatId });
 
         if (chatReaction) {
-            // Check if this reactor has already reacted
+            
             const existing = chatReaction.reactions.find(r => r.reactor === reaction.reactor);
             if (existing) {
-                // Update the reaction for this reactor
+                
                 existing.reaction = reaction.reaction;
             } else {
-                // Add new reaction for this reactor
+                
                 chatReaction.reactions.push({ reaction: reaction.reaction, reactor: reaction.reactor });
             }
             await chatReaction.save();
         } else {
-            // Create new Reaction document
+           
             await Reaction.create({ chatId, reactions: [{ reaction: reaction.reaction, reactor: reaction.reactor }], shadowId: rooms });
         }
         const prevReactions = await Reaction.find({ shadowId: rooms });
@@ -155,6 +155,7 @@ io.on('connection', (socket) => {
         socket.to(rooms).emit('typing', "Something is lurking...");
     })
 });
+
 app.post('/uploadedImage', upload.single('file'), (req, res) => {
     res.send(req.file?.filename);
 });
