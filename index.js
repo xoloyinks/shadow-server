@@ -10,11 +10,11 @@ const connectDb = require('./mongo');
 const cron = require('node-cron');
 const { Shadow, Chat, ImageCaption, Reaction } = require('./models');
 
-// Schedule a cron job to run every 5 minutes to clean up expired shadows and their chats
+
 cron.schedule('*/5 * * * *', async () => {
     const now = new Date();
     const expiredShadows = await Shadow.find({ createdAt: { $lte: new Date(now.getTime() - 86400000) } });
-    for(const room of expiredShadows) {
+    for (const room of expiredShadows) {
         await Chat.deleteMany({ shadowId: room.shadow });
         await Shadow.deleteOne({ shadow: room.shadow });
     }
@@ -94,10 +94,10 @@ io.on('connection', (socket) => {
 
         io.to(socket.id).emit('prevMessages', prevChats);
         io.to(socket.id).emit('prevImageCaptions', prevImageCaptions);
-        if(prevReactions){
+        if (prevReactions) {
             io.to(socket.id).emit('prevReactions', prevReactions);
         }
-        
+
     });
 
     socket.on('text', async ({ message, rooms, user, time, messageType, reply }) => {
@@ -112,46 +112,48 @@ io.on('connection', (socket) => {
                 message: reply.message
             } : null
         });
-        io.to(rooms).emit('chat', { message, sender: user, timestamp: time, messageType, shadowId: rooms, _id: createChat.id,  reply: reply ? {
-            sender: reply.sender,
-            message: reply.message
-        } : null });
+        io.to(rooms).emit('chat', {
+            message, sender: user, timestamp: time, messageType, shadowId: rooms, _id: createChat.id, reply: reply ? {
+                sender: reply.sender,
+                message: reply.message
+            } : null
+        });
     });
 
-    
+
 
     socket.on('reaction', async ({ reaction, chatId, rooms }) => {
         console.log({ reaction, chatId, rooms });
         let chatReaction = await Reaction.findOne({ chatId });
 
         if (chatReaction) {
-            
+
             const existing = chatReaction.reactions.find(r => r.reactor === reaction.reactor);
             if (existing) {
-                
+
                 existing.reaction = reaction.reaction;
             } else {
-                
+
                 chatReaction.reactions.push({ reaction: reaction.reaction, reactor: reaction.reactor });
             }
             await chatReaction.save();
         } else {
-           
+
             await Reaction.create({ chatId, reactions: [{ reaction: reaction.reaction, reactor: reaction.reactor }], shadowId: rooms });
         }
         const prevReactions = await Reaction.find({ shadowId: rooms });
         io.to(rooms).emit('prevReactions', prevReactions);
     });
 
-    socket.on('deleteChat', async({ chatId, rooms }) => {
-        if(!chatId) return;
+    socket.on('deleteChat', async ({ chatId, rooms }) => {
+        if (!chatId) return;
         await Chat.deleteOne({ _id: chatId });
         await Reaction.deleteMany({ chatId });
         const prevChats = await Chat.find({ shadowId: rooms });
         io.to(rooms).emit('prevMessages', prevChats);
     })
 
-    socket.on('typing', ({rooms}) => {
+    socket.on('typing', ({ rooms }) => {
         socket.to(rooms).emit('typing', "Something is lurking...");
     })
 });
